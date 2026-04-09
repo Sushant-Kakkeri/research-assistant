@@ -4,10 +4,9 @@
 # RAG as a Tool for MCP Research Assistant
 #
 # FIXES IN THIS VERSION:
+# - Removed pymupdf (caused build errors)
+# - Using pypdf only (works on cloud!)
 # - Uses ChromaDB EphemeralClient
-#   (in-memory storage)
-# - Fixes "chroma_db_impl" error
-# - Fixes protobuf conflicts
 # - Works on Streamlit Cloud!
 # ===========================================
 
@@ -22,7 +21,11 @@ from langchain_community.vectorstores import (
 # OpenAI embeddings
 from langchain_openai import OpenAIEmbeddings
 
-# ChromaDB - NEW initialization method
+# PDF loader - pypdf only!
+from langchain_community.document_loaders import (
+    PyPDFLoader)
+
+# ChromaDB in-memory client
 import chromadb
 from chromadb.config import Settings
 
@@ -34,11 +37,9 @@ import os
 class RAGTool:
     """
     RAG packaged as a tool for MCP.
+    Uses pypdf (no compilation needed!)
     Uses EphemeralClient (in-memory)
-    to avoid Streamlit Cloud issues!
-
-    MCP treats this exactly like
-    any other tool - web search etc!
+    Works perfectly on Streamlit Cloud!
     """
 
     def __init__(self, openai_key: str):
@@ -51,7 +52,6 @@ class RAGTool:
         self.openai_key = openai_key
 
         # ChromaDB in-memory client
-        # EphemeralClient = stores in RAM
         # No disk permissions needed!
         # Perfect for Streamlit Cloud!
         self.chroma_client = (
@@ -78,7 +78,7 @@ class RAGTool:
                  uploaded_file) -> tuple:
         """
         Load and index a PDF file.
-        MCP calls this to add knowledge!
+        Uses pypdf only - no compilation!
 
         Args:
             uploaded_file: Streamlit file
@@ -90,57 +90,28 @@ class RAGTool:
         tmp_path = None
 
         try:
-            # Save to temp file
+            # STEP 1: Save to temp file
+            # pypdf needs file on disk
             with tempfile.NamedTemporaryFile(
                     delete=False,
                     suffix=".pdf") as tmp:
                 tmp.write(uploaded_file.read())
                 tmp_path = tmp.name
 
-            documents = []
+            # STEP 2: Read PDF with pypdf
+            # Simple and reliable!
+            # Works on all platforms!
+            loader = PyPDFLoader(tmp_path)
+            documents = loader.load()
 
-            # Try PyMuPDF first
-            try:
-                import fitz
-                from langchain.schema import (
-                    Document)
-
-                doc = fitz.open(tmp_path)
-
-                for page_num in range(len(doc)):
-                    page = doc[page_num]
-                    text = page.get_text()
-
-                    if text.strip():
-                        documents.append(
-                            Document(
-                                page_content=text,
-                                metadata={
-                                    "page":
-                                        page_num + 1,
-                                    "source":
-                                        uploaded_file
-                                        .name
-                                }
-                            )
-                        )
-                doc.close()
-
-            # Fallback to pypdf
-            except ImportError:
-                from langchain_community\
-                    .document_loaders import (
-                    PyPDFLoader)
-                loader = PyPDFLoader(tmp_path)
-                documents = loader.load()
-
-            # Validate content
+            # STEP 3: Validate content
             if not documents:
                 return False, (
                     "PDF appears empty "
                     "or image-based!")
 
             # Filter empty pages
+            # Less than 50 chars = blank
             documents = [
                 d for d in documents
                 if len(
@@ -152,7 +123,10 @@ class RAGTool:
                     "No readable text found! "
                     "Try a Wikipedia PDF.")
 
-            # Split into chunks
+            # STEP 4: Split into chunks
+            # chunk_size=1000 = ~150 words
+            # chunk_overlap=200 = shared chars
+            # Prevents cutting answers in half!
             splitter = (
                 RecursiveCharacterTextSplitter(
                     chunk_size=1000,
@@ -160,10 +134,11 @@ class RAGTool:
             chunks = splitter.split_documents(
                 documents)
 
-            # Store in ChromaDB
-            # Using EphemeralClient!
+            # STEP 5: Store in ChromaDB
+            # EphemeralClient = in memory!
+            # No disk issues on cloud!
             if self.vectorstore is None:
-                # First PDF
+                # First PDF - create new store
                 self.vectorstore = (
                     Chroma.from_documents(
                         documents=chunks,
@@ -171,56 +146,66 @@ class RAGTool:
                         client=self.chroma_client
                     ))
             else:
-                # Additional PDFs
+                # More PDFs - add to existing
                 self.vectorstore.add_documents(
                     documents=chunks)
 
+            # Track what was loaded
             self.doc_count += len(documents)
             self.loaded_files.append(
                 uploaded_file.name)
 
-            # Clean up temp file safely
+            # STEP 6: Clean up temp file
+            # Windows sometimes locks files
+            # so use try/except!
             if tmp_path:
                 try:
                     os.unlink(tmp_path)
                 except Exception:
                     pass
 
+            # Return success with chunk count
             return True, len(chunks)
 
         except Exception as e:
+            # Clean up even if error occurs
             if tmp_path:
                 try:
                     os.unlink(tmp_path)
                 except Exception:
                     pass
+            # Return failure with error message
             return False, str(e)
 
     def search(self,
                query: str,
                k: int = 4) -> str:
         """
-        Search documents.
-        MCP calls this as a tool!
-        Same as calling web_search!
+        Search documents for relevant content.
+        MCP calls this exactly like web_search!
 
         Args:
             query: What to search for
-            k:     Number of results
+            k:     Number of results to return
 
         Returns:
-            Relevant sections as string
+            Relevant document sections
+            or None if nothing found
         """
+        # Can't search if nothing loaded!
         if self.vectorstore is None:
             return None
 
         try:
+            # Find chunks by MEANING
+            # Not just keyword matching!
             docs = self.vectorstore\
                 .similarity_search(query, k=k)
 
             if not docs:
                 return None
 
+            # Format results with metadata
             context = ""
             for i, doc in enumerate(docs):
                 page = doc.metadata.get(
@@ -239,7 +224,7 @@ class RAGTool:
             return None
 
     def has_documents(self) -> bool:
-        """Check if documents loaded."""
+        """Check if documents are loaded."""
         return self.vectorstore is not None
 
     def get_loaded_files(self) -> list:
@@ -247,8 +232,10 @@ class RAGTool:
         return self.loaded_files
 
     def clear_documents(self):
-        """Clear all documents."""
-        # Fresh client clears everything
+        """
+        Clear all documents.
+        Creates fresh ChromaDB client.
+        """
         self.chroma_client = (
             chromadb.EphemeralClient(
                 settings=Settings(
