@@ -1,46 +1,23 @@
 # ===========================================
-# app.py
-# ===========================================
-# The FRONT DOOR — what users see.
-#
-# KEY DIFFERENCE from previous app:
-# Previous app.py = complex
-# Had routing logic and decisions
-#
-# This app.py = SIMPLE
-# Just shows UI and passes to MCP!
-# ALL intelligence is in mcp_agent.py!
-#
-# App's only jobs:
-# 1. Show the interface
-# 2. Take user input
-# 3. Pass to MCPAgent
-# 4. Display results
-# Nothing more!
+# Author:      Sushant Kakkeri
+# Title:       Senior Enterprise Software
+#              Engineer
+# Application: MCP Research Assistant
+# Created:     April 2026
+# Copyright:   © 2026 Sushant Kakkeri
+#              All Rights Reserved
 # ===========================================
 
-# Streamlit = turns Python into web app
 import streamlit as st
-
-# Load API key from .env file automatically
 from dotenv import load_dotenv
-
-# Our custom modules
-from rag_tool import RAGTool    # RAG as tool
-from mcp_agent import MCPAgent  # MCP brain
-
-# Access environment variables
+from rag_tool import RAGTool
+from mcp_agent import MCPAgent
 import os
 
-# Load .env file at startup
 load_dotenv()
-
 
 # ===========================================
 # PAGE CONFIGURATION
-# ===========================================
-# MUST be first Streamlit command!
-# Sets browser tab, layout, sidebar
 # ===========================================
 st.set_page_config(
     page_title="MCP Research Assistant",
@@ -49,16 +26,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-
 # ===========================================
 # CUSTOM STYLING
 # ===========================================
-# CSS makes app look professional
-# ===========================================
 st.markdown("""
 <style>
-/* Research step display boxes */
-/* Blue bordered - shows MCP thinking */
 .step-box {
     background: #f0f7ff;
     border-left: 3px solid #2196F3;
@@ -68,9 +40,6 @@ st.markdown("""
     font-family: monospace;
     font-size: 13px;
 }
-
-/* Colored tool name labels */
-/* Each tool gets its own color */
 .tool-badge {
     display: inline-block;
     padding: 2px 8px;
@@ -79,14 +48,26 @@ st.markdown("""
     font-weight: bold;
     margin: 2px;
 }
+.author-bar {
+    background: linear-gradient(
+        90deg, #1a1a2e, #16213e);
+    padding: 8px 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.footer-bar {
+    text-align: center;
+    padding: 15px;
+    background: linear-gradient(
+        90deg, #1a1a2e, #16213e);
+    border-radius: 10px;
+    margin-top: 20px;
+}
 </style>
 """, unsafe_allow_html=True)
 
-
 # ===========================================
 # SIDEBAR
-# ===========================================
-# Left panel with settings and status
 # ===========================================
 st.sidebar.title("🔬 Research Assistant")
 st.sidebar.caption(
@@ -94,8 +75,6 @@ st.sidebar.caption(
 st.sidebar.markdown("---")
 
 # API Key input
-# Pre-filled from .env if available
-# Hidden with dots for security
 openai_key = st.sidebar.text_input(
     "🔑 OpenAI API Key",
     value=os.getenv("OPENAI_API_KEY", ""),
@@ -103,34 +82,18 @@ openai_key = st.sidebar.text_input(
 
 if openai_key:
 
-    # ─────────────────────────────
-    # Initialize once per session
-    # session_state persists between
-    # page reruns (button clicks etc)
-    # Without this everything resets!
-    # ─────────────────────────────
     if "rag_tool" not in st.session_state:
-        # Create RAG tool
         st.session_state.rag_tool = (
             RAGTool(openai_key))
-
-        # Create MCP Agent with RAG tool
-        # MCP needs RAG to search documents
         st.session_state.mcp_agent = (
             MCPAgent(
                 openai_key,
                 st.session_state.rag_tool))
-
-        # Empty chat history
         st.session_state.messages = []
 
     st.sidebar.markdown("---")
 
-    # ─────────────────────────────
     # PDF Upload
-    # Optional - MCP searches if uploaded
-    # Can upload multiple files!
-    # ─────────────────────────────
     st.sidebar.subheader(
         "📄 Upload Documents (Optional)")
     st.sidebar.caption(
@@ -143,19 +106,16 @@ if openai_key:
 
     if uploaded_files:
         for f in uploaded_files:
-            # Unique key prevents reloading
-            # Same file twice!
             key = f"loaded_{f.name}"
-
             if key not in st.session_state:
                 with st.spinner(
                         f"📚 Indexing {f.name}"):
                     success, info = (
                         st.session_state
                         .rag_tool.load_pdf(f))
-
                     if success:
-                        st.session_state[key] = True
+                        st.session_state[
+                            key] = True
                         st.sidebar.success(
                             f"✅ {f.name} "
                             f"({info} chunks)")
@@ -165,10 +125,7 @@ if openai_key:
 
     st.sidebar.markdown("---")
 
-    # ─────────────────────────────
-    # Tool Status Display
-    # Show what MCP has available
-    # ─────────────────────────────
+    # Tool Status
     st.sidebar.subheader("🤖 MCP Tools Ready")
 
     tools_list = [
@@ -180,7 +137,6 @@ if openai_key:
         "🕐 Date & Time"
     ]
 
-    # Check document status
     if (st.session_state.rag_tool
             .has_documents()):
         tools_list.insert(0, "📄 Doc Search ✅")
@@ -207,11 +163,56 @@ if openai_key:
             .clear_history()
         st.rerun()
 
+    # ─────────────────────────────
+    # SIDEBAR AUTHOR SIGNATURE
+    # ─────────────────────────────
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("""
+<div style='text-align: center;
+    padding: 10px;'>
+    <div style='color: #e94560;
+        font-weight: bold;
+        font-size: 13px;'>
+        👨‍💻 Sushant Kakkeri
+    </div>
+    <div style='color: gray;
+        font-size: 11px;
+        margin-top: 4px;'>
+        Senior Enterprise Software Engineer
+    </div>
+    <div style='color: gray;
+        font-size: 10px;
+        margin-top: 2px;'>
+        © 2026 All Rights Reserved
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ===========================================
 # MAIN INTERFACE
 # ===========================================
 st.title("🔬 MCP Research Assistant")
+
+# ─────────────────────────────
+# AUTHOR BAR UNDER TITLE
+# ─────────────────────────────
+st.markdown("""
+<div class='author-bar'>
+    <span style='color: #e94560;
+        font-weight: bold;
+        font-size: 13px;'>
+        👨‍💻 Built by Sushant Kakkeri
+    </span>
+    <span style='color: #aaa;
+        font-size: 12px;'>
+        &nbsp;|&nbsp;
+        Senior Enterprise Software Engineer
+        &nbsp;|&nbsp;
+        © 2026 All Rights Reserved
+    </span>
+</div>
+""", unsafe_allow_html=True)
+
 st.caption(
     "MCP AI Agent — decides which tools "
     "to use, in what order, automatically!")
@@ -220,21 +221,18 @@ st.caption(
 with st.expander(
         "🧠 How MCP Makes Decisions"):
     col1, col2, col3 = st.columns(3)
-
     col1.markdown("""
     ### 📋 Step 1: Understand
     MCP reads your question and
     plans its own research strategy.
     No router tells it what to do!
     """)
-
     col2.markdown("""
     ### 🔧 Step 2: Research
     MCP calls multiple tools in
     sequence automatically.
     Wikipedia + Web + Docs + News!
     """)
-
     col3.markdown("""
     ### 📊 Step 3: Report
     MCP compiles all findings into
@@ -246,60 +244,43 @@ st.markdown("---")
 
 if openai_key:
 
-    # ─────────────────────────────
     # Demo Question Buttons
-    # ─────────────────────────────
     st.subheader("💡 Try These Demo Questions")
     col1, col2, col3 = st.columns(3)
 
-    # Button 1: Simple research
     q1 = col1.button(
         "🌍 Research AI developments",
         use_container_width=True)
-
-    # Button 2: With documents
     q2 = col2.button(
         "🚀 Research Mars + my documents",
         use_container_width=True)
-
-    # Button 3: Full report
     q3 = col3.button(
         "📊 Quantum computing full report",
         use_container_width=True)
 
     st.markdown("---")
 
-    # ─────────────────────────────
-    # CHAT HISTORY DISPLAY
-    # Show all previous messages
-    # with badges and steps
-    # ─────────────────────────────
-
-    # Color for each tool
-    # Very visual for demo!
+    # Tool colors
     TOOL_COLORS = {
-        "web_search": "#4CAF50",       # Green
-        "wikipedia_search": "#2196F3",  # Blue
-        "news_search": "#FF9800",       # Orange
-        "search_documents": "#9C27B0",  # Purple
-        "generate_report": "#F44336",   # Red
-        "save_report": "#795548",       # Brown
-        "get_current_datetime": "#607D8B" # Grey
+        "web_search": "#4CAF50",
+        "wikipedia_search": "#2196F3",
+        "news_search": "#FF9800",
+        "search_documents": "#9C27B0",
+        "generate_report": "#F44336",
+        "save_report": "#795548",
+        "get_current_datetime": "#607D8B"
     }
 
+    # Chat history display
     for msg in st.session_state.get(
             "messages", []):
-
         if msg["role"] == "user":
             with st.chat_message("user"):
                 st.write(msg["content"])
-
         else:
             with st.chat_message(
                     "assistant",
                     avatar="🔬"):
-
-                # Show tool badges
                 if msg.get("tools_used"):
                     st.markdown(
                         "**🤖 MCP Used:**")
@@ -309,39 +290,37 @@ if openai_key:
                         color = TOOL_COLORS.get(
                             tool, "#999")
                         badges += (
-                            f'<span class="tool-badge" '
-                            f'style="background:{color};'
-                            f'color:white">'
+                            f'<span class='
+                            f'"tool-badge" '
+                            f'style="background:'
+                            f'{color};color:white">'
                             f'{tool}</span> ')
                     st.markdown(
                         badges,
                         unsafe_allow_html=True)
 
-                # Show research steps
-                # Click to expand!
                 if msg.get("steps"):
                     with st.expander(
-                            f"🔍 MCP Research Steps "
-                            f"({len(msg['steps'])})"):
+                            f"🔍 MCP Research "
+                            f"Steps "
+                            f"({len(msg['steps'])"
+                            f"})"):
                         for step in msg["steps"]:
                             st.markdown(
-                                f'<div class="step-box">'
+                                f'<div class='
+                                f'"step-box">'
                                 f'{step}</div>',
-                                unsafe_allow_html=True)
+                                unsafe_allow_html
+                                =True)
 
-                # Final answer
                 st.write(msg["content"])
 
-    # ─────────────────────────────
-    # CHAT INPUT
-    # Bottom of screen like chat apps
-    # ─────────────────────────────
+    # Chat input
     user_input = st.chat_input(
         "Ask me to research anything — "
         "MCP decides how to find it!")
 
-    # Handle demo button clicks
-    # Set predefined questions
+    # Demo button handlers
     if q1:
         user_input = (
             "Research the latest developments "
@@ -361,68 +340,58 @@ if openai_key:
             "Then generate a complete structured "
             "report and save it to a file.")
 
-    # ─────────────────────────────
-    # PROCESS USER INPUT
-    # ─────────────────────────────
+    # Process input
     if user_input:
-
-        # Show user message immediately
         with st.chat_message("user"):
             st.write(user_input)
 
-        # Save to history
         st.session_state.messages.append({
             "role": "user",
             "content": user_input
         })
 
-        # MCP Agent does all the work!
         with st.chat_message(
                 "assistant",
                 avatar="🔬"):
-
             with st.spinner(
                     "🤖 MCP researching — "
                     "deciding tools to use..."):
-                # Just pass question to MCP!
-                # MCP handles EVERYTHING else!
                 result = (
                     st.session_state
                     .mcp_agent.research(
                         user_input))
 
-            # Show tool badges
             if result["tools_used"]:
                 st.markdown(
-                    "**🤖 MCP Automatically Used:**")
+                    "**🤖 MCP Automatically "
+                    "Used:**")
                 badges = ""
                 for tool in result["tools_used"]:
                     color = TOOL_COLORS.get(
                         tool, "#999")
                     badges += (
-                        f'<span class="tool-badge" '
-                        f'style="background:{color};'
-                        f'color:white">'
+                        f'<span class="tool-badge"'
+                        f' style="background:'
+                        f'{color};color:white">'
                         f'{tool}</span> ')
                 st.markdown(
                     badges,
                     unsafe_allow_html=True)
 
-            # Show research steps
             if result["steps"]:
                 with st.expander(
                         f"🔍 MCP Research Steps "
-                        f"({len(result['steps'])})"):
+                        f"({len(result['steps'])"
+                        f"})"):
                     for step in result["steps"]:
                         st.markdown(
-                            f'<div class="step-box">'
+                            f'<div class='
+                            f'"step-box">'
                             f'{step}</div>',
                             unsafe_allow_html=True)
 
-            # Show final answer
             st.write(result["answer"])
 
-        # Save to history with metadata
         st.session_state.messages.append({
             "role": "assistant",
             "content": result["answer"],
@@ -431,7 +400,6 @@ if openai_key:
         })
 
 else:
-    # No API key yet - guide user
     st.warning(
         "👈 Enter your OpenAI API key "
         "in the sidebar to start!")
@@ -442,3 +410,35 @@ else:
         "• Uses web, Wikipedia, news, docs\n"
         "• Generates and saves reports!\n"
         "• True AI Agent behavior!")
+
+# ─────────────────────────────
+# FOOTER
+# ─────────────────────────────
+st.markdown("---")
+st.markdown("""
+<div class='footer-bar'>
+    <div style='color: #e94560;
+        font-weight: bold;
+        font-size: 14px;'>
+        🔬 MCP Research Assistant
+    </div>
+    <div style='color: #aaa;
+        font-size: 12px;
+        margin-top: 5px;'>
+        Built by
+        <b style='color: white;'>
+            Sushant Kakkeri
+        </b>
+        &nbsp;|&nbsp;
+        Senior Enterprise Software Engineer
+    </div>
+    <div style='color: gray;
+        font-size: 11px;
+        margin-top: 4px;'>
+        Powered by OpenAI GPT-4o +
+        LangChain + FAISS + Streamlit
+        &nbsp;|&nbsp;
+        © 2026 All Rights Reserved
+    </div>
+</div>
+""", unsafe_allow_html=True)

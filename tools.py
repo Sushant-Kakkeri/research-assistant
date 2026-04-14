@@ -1,4 +1,14 @@
 # ===========================================
+# Author:      Sushant Kakkeri
+# Title:       Senior Enterprise Software
+#              Engineer
+# Application: MCP Research Assistant
+# Created:     April 2026
+# Copyright:   © 2026 Sushant Kakkeri
+#              All Rights Reserved
+# ===========================================
+
+# ===========================================
 # tools.py
 # ===========================================
 # This file is the TOOLBOX.
