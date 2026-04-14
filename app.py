@@ -49,8 +49,7 @@ st.markdown("""
     margin: 2px;
 }
 .author-bar {
-    background: linear-gradient(
-        90deg, #1a1a2e, #16213e);
+    background: linear-gradient(90deg, #1a1a2e, #16213e);
     padding: 8px 15px;
     border-radius: 8px;
     margin-bottom: 10px;
@@ -58,70 +57,62 @@ st.markdown("""
 .footer-bar {
     text-align: center;
     padding: 15px;
-    background: linear-gradient(
-        90deg, #1a1a2e, #16213e);
+    background: linear-gradient(90deg, #1a1a2e, #16213e);
     border-radius: 10px;
     margin-top: 20px;
 }
 </style>
 """, unsafe_allow_html=True)
 
+
 # ===========================================
 # SIDEBAR
 # ===========================================
 st.sidebar.title("🔬 Research Assistant")
-st.sidebar.caption(
-    "MCP makes ALL decisions automatically!")
+st.sidebar.caption("MCP makes ALL decisions automatically!")
 st.sidebar.markdown("---")
 
 # API Key input
 openai_key = st.sidebar.text_input(
     "🔑 OpenAI API Key",
     value=os.getenv("OPENAI_API_KEY", ""),
-    type="password")
+    type="password"
+)
 
 if openai_key:
 
+    # Initialize once per session
     if "rag_tool" not in st.session_state:
-        st.session_state.rag_tool = (
-            RAGTool(openai_key))
-        st.session_state.mcp_agent = (
-            MCPAgent(
-                openai_key,
-                st.session_state.rag_tool))
+        st.session_state.rag_tool = RAGTool(openai_key)
+        st.session_state.mcp_agent = MCPAgent(
+            openai_key,
+            st.session_state.rag_tool
+        )
         st.session_state.messages = []
 
     st.sidebar.markdown("---")
 
     # PDF Upload
-    st.sidebar.subheader(
-        "📄 Upload Documents (Optional)")
-    st.sidebar.caption(
-        "MCP searches these automatically!")
+    st.sidebar.subheader("📄 Upload Documents (Optional)")
+    st.sidebar.caption("MCP searches these automatically!")
 
     uploaded_files = st.sidebar.file_uploader(
         "Upload PDFs",
         type="pdf",
-        accept_multiple_files=True)
+        accept_multiple_files=True
+    )
 
     if uploaded_files:
         for f in uploaded_files:
-            key = f"loaded_{f.name}"
+            key = "loaded_" + f.name
             if key not in st.session_state:
-                with st.spinner(
-                        f"📚 Indexing {f.name}"):
-                    success, info = (
-                        st.session_state
-                        .rag_tool.load_pdf(f))
+                with st.spinner("📚 Indexing " + f.name):
+                    success, info = st.session_state.rag_tool.load_pdf(f)
                     if success:
-                        st.session_state[
-                            key] = True
-                        st.sidebar.success(
-                            f"✅ {f.name} "
-                            f"({info} chunks)")
+                        st.session_state[key] = True
+                        st.sidebar.success("✅ " + f.name + " (" + str(info) + " chunks)")
                     else:
-                        st.sidebar.error(
-                            f"❌ {info}")
+                        st.sidebar.error("❌ " + str(info))
 
     st.sidebar.markdown("---")
 
@@ -137,89 +128,64 @@ if openai_key:
         "🕐 Date & Time"
     ]
 
-    if (st.session_state.rag_tool
-            .has_documents()):
+    if st.session_state.rag_tool.has_documents():
         tools_list.insert(0, "📄 Doc Search ✅")
-        files = (st.session_state.rag_tool
-                 .get_loaded_files())
-        st.sidebar.success(
-            f"📄 {len(files)} doc(s) loaded!")
+        num_files = len(st.session_state.rag_tool.get_loaded_files())
+        st.sidebar.success("📄 " + str(num_files) + " doc(s) loaded!")
     else:
-        tools_list.insert(
-            0, "📄 Doc Search (no docs)")
+        tools_list.insert(0, "📄 Doc Search (no docs)")
         st.sidebar.info("Upload PDFs to enable!")
 
     for tool in tools_list:
-        st.sidebar.caption(f"  • {tool}")
+        st.sidebar.caption("  • " + tool)
 
     st.sidebar.markdown("---")
 
     # Clear button
-    if st.sidebar.button(
-            "🗑️ Clear Conversation",
-            use_container_width=True):
+    if st.sidebar.button("🗑️ Clear Conversation", use_container_width=True):
         st.session_state.messages = []
-        st.session_state.mcp_agent\
-            .clear_history()
+        st.session_state.mcp_agent.clear_history()
         st.rerun()
 
-    # ─────────────────────────────
-    # SIDEBAR AUTHOR SIGNATURE
-    # ─────────────────────────────
+    # Sidebar Author Signature
     st.sidebar.markdown("---")
     st.sidebar.markdown("""
-<div style='text-align: center;
-    padding: 10px;'>
-    <div style='color: #e94560;
-        font-weight: bold;
-        font-size: 13px;'>
+<div style='text-align: center; padding: 10px;'>
+    <div style='color: #e94560; font-weight: bold; font-size: 13px;'>
         👨‍💻 Sushant Kakkeri
     </div>
-    <div style='color: gray;
-        font-size: 11px;
-        margin-top: 4px;'>
+    <div style='color: gray; font-size: 11px; margin-top: 4px;'>
         Senior Enterprise Software Engineer
     </div>
-    <div style='color: gray;
-        font-size: 10px;
-        margin-top: 2px;'>
+    <div style='color: gray; font-size: 10px; margin-top: 2px;'>
         © 2026 All Rights Reserved
     </div>
 </div>
 """, unsafe_allow_html=True)
+
 
 # ===========================================
 # MAIN INTERFACE
 # ===========================================
 st.title("🔬 MCP Research Assistant")
 
-# ─────────────────────────────
-# AUTHOR BAR UNDER TITLE
-# ─────────────────────────────
+# Author bar under title
 st.markdown("""
 <div class='author-bar'>
-    <span style='color: #e94560;
-        font-weight: bold;
-        font-size: 13px;'>
+    <span style='color: #e94560; font-weight: bold; font-size: 13px;'>
         👨‍💻 Built by Sushant Kakkeri
     </span>
-    <span style='color: #aaa;
-        font-size: 12px;'>
-        &nbsp;|&nbsp;
-        Senior Enterprise Software Engineer
-        &nbsp;|&nbsp;
-        © 2026 All Rights Reserved
+    <span style='color: #aaa; font-size: 12px;'>
+        &nbsp;|&nbsp; Senior Enterprise Software Engineer
+        &nbsp;|&nbsp; © 2026 All Rights Reserved
     </span>
 </div>
 """, unsafe_allow_html=True)
 
-st.caption(
-    "MCP AI Agent — decides which tools "
-    "to use, in what order, automatically!")
+st.caption("MCP AI Agent — decides which tools to use, in what order, automatically!")
 
 # How it works explainer
-with st.expander(
-        "🧠 How MCP Makes Decisions"):
+with st.expander("🧠 How MCP Makes Decisions"):
     col1, col2, col3 = st.columns(3)
     col1.markdown("""
     ### 📋 Step 1: Understand
@@ -248,19 +214,13 @@ if openai_key:
     st.subheader("💡 Try These Demo Questions")
     col1, col2, col3 = st.columns(3)
 
-    q1 = col1.button(
-        "🌍 Research AI developments",
-        use_container_width=True)
-    q2 = col2.button(
-        "🚀 Research Mars + my documents",
-        use_container_width=True)
-    q3 = col3.button(
-        "📊 Quantum computing full report",
-        use_container_width=True)
+    q1 = col1.button("🌍 Research AI developments", use_container_width=True)
+    q2 = col2.button("🚀 Research Mars + my documents", use_container_width=True)
+    q3 = col3.button("📊 Quantum computing full report", use_container_width=True)
 
     st.markdown("---")
 
-    # Tool colors
+    # Tool colors for badges
     TOOL_COLORS = {
         "web_search": "#4CAF50",
         "wikipedia_search": "#2196F3",
@@ -272,126 +232,93 @@ if openai_key:
     }
 
     # Chat history display
-    for msg in st.session_state.get(
-            "messages", []):
+    for msg in st.session_state.get("messages", []):
+
         if msg["role"] == "user":
             with st.chat_message("user"):
                 st.write(msg["content"])
+
         else:
-            with st.chat_message(
-                    "assistant",
-                    avatar="🔬"):
+            with st.chat_message("assistant", avatar="🔬"):
+
+                # Show tool badges
                 if msg.get("tools_used"):
-                    st.markdown(
-                        "**🤖 MCP Used:**")
+                    st.markdown("**🤖 MCP Used:**")
                     badges = ""
-                    for tool in (
-                            msg["tools_used"]):
-                        color = TOOL_COLORS.get(
-                            tool, "#999")
-                        badges += (
-                            f'<span class='
-                            f'"tool-badge" '
-                            f'style="background:'
-                            f'{color};color:white">'
-                            f'{tool}</span> ')
-                    st.markdown(
-                        badges,
-                        unsafe_allow_html=True)
+                    for tool in msg["tools_used"]:
+                        color = TOOL_COLORS.get(tool, "#999")
+                        badges += '<span class="tool-badge" style="background:' + color + ';color:white">' + tool + '</span> '
+                    st.markdown(badges, unsafe_allow_html=True)
 
+                # Show research steps
                 if msg.get("steps"):
-                    with st.expander(
-                            f"🔍 MCP Research "
-                            f"Steps "
-                            f"({len(msg['steps'])"
-                            f"})"):
+                    step_count = len(msg["steps"])
+                    with st.expander("🔍 MCP Research Steps (" + str(step_count) + ")"):
                         for step in msg["steps"]:
-                            st.markdown(
-                                f'<div class='
-                                f'"step-box">'
-                                f'{step}</div>',
-                                unsafe_allow_html
-                                =True)
+                            st.markdown('<div class="step-box">' + step + '</div>', unsafe_allow_html=True)
 
+                # Final answer
                 st.write(msg["content"])
 
     # Chat input
-    user_input = st.chat_input(
-        "Ask me to research anything — "
-        "MCP decides how to find it!")
+    user_input = st.chat_input("Ask me to research anything — MCP decides how to find it!")
 
     # Demo button handlers
     if q1:
         user_input = (
-            "Research the latest developments "
-            "in artificial intelligence. "
-            "Use web search, Wikipedia and "
-            "news search for comprehensive info.")
+            "Research the latest developments in artificial intelligence. "
+            "Use web search, Wikipedia and news search for comprehensive info."
+        )
     if q2:
         user_input = (
-            "Research Mars exploration — "
-            "search my uploaded documents "
-            "AND find latest mission news "
-            "AND Wikipedia background info.")
+            "Research Mars exploration — search my uploaded documents "
+            "AND find latest mission news AND Wikipedia background info."
+        )
     if q3:
         user_input = (
-            "Research quantum computing "
-            "thoroughly. Use all available tools. "
-            "Then generate a complete structured "
-            "report and save it to a file.")
+            "Research quantum computing thoroughly. Use all available tools. "
+            "Then generate a complete structured report and save it to a file."
+        )
 
     # Process input
     if user_input:
+
+        # Show user message
         with st.chat_message("user"):
             st.write(user_input)
 
+        # Save to history
         st.session_state.messages.append({
             "role": "user",
             "content": user_input
         })
 
-        with st.chat_message(
-                "assistant",
-                avatar="🔬"):
-            with st.spinner(
-                    "🤖 MCP researching — "
-                    "deciding tools to use..."):
-                result = (
-                    st.session_state
-                    .mcp_agent.research(
-                        user_input))
+        # MCP Agent does all the work
+        with st.chat_message("assistant", avatar="🔬"):
 
+            with st.spinner("🤖 MCP researching — deciding tools to use..."):
+                result = st.session_state.mcp_agent.research(user_input)
+
+            # Show tool badges
             if result["tools_used"]:
-                st.markdown(
-                    "**🤖 MCP Automatically "
-                    "Used:**")
+                st.markdown("**🤖 MCP Automatically Used:**")
                 badges = ""
                 for tool in result["tools_used"]:
-                    color = TOOL_COLORS.get(
-                        tool, "#999")
-                    badges += (
-                        f'<span class="tool-badge"'
-                        f' style="background:'
-                        f'{color};color:white">'
-                        f'{tool}</span> ')
-                st.markdown(
-                    badges,
-                    unsafe_allow_html=True)
+                    color = TOOL_COLORS.get(tool, "#999")
+                    badges += '<span class="tool-badge" style="background:' + color + ';color:white">' + tool + '</span> '
+                st.markdown(badges, unsafe_allow_html=True)
 
+            # Show research steps
             if result["steps"]:
-                with st.expander(
-                        f"🔍 MCP Research Steps "
-                        f"({len(result['steps'])"
-                        f"})"):
+                step_count = len(result["steps"])
+                with st.expander("🔍 MCP Research Steps (" + str(step_count) + ")"):
                     for step in result["steps"]:
-                        st.markdown(
-                            f'<div class='
-                            f'"step-box">'
-                            f'{step}</div>',
-                            unsafe_allow_html=True)
+                        st.markdown('<div class="step-box">' + step + '</div>', unsafe_allow_html=True)
 
+            # Show final answer
             st.write(result["answer"])
 
+        # Save to history
         st.session_state.messages.append({
             "role": "assistant",
             "content": result["answer"],
@@ -400,45 +327,33 @@ if openai_key:
         })
 
 else:
-    st.warning(
-        "👈 Enter your OpenAI API key "
-        "in the sidebar to start!")
+    st.warning("👈 Enter your OpenAI API key in the sidebar to start!")
     st.info(
         "MCP Research Assistant:\n\n"
         "• MCP decides which tools to use\n"
         "• No router needed\n"
         "• Uses web, Wikipedia, news, docs\n"
         "• Generates and saves reports!\n"
-        "• True AI Agent behavior!")
+        "• True AI Agent behavior!"
+    )
 
-# ─────────────────────────────
+
+# ===========================================
 # FOOTER
-# ─────────────────────────────
+# ===========================================
 st.markdown("---")
 st.markdown("""
 <div class='footer-bar'>
-    <div style='color: #e94560;
-        font-weight: bold;
-        font-size: 14px;'>
+    <div style='color: #e94560; font-weight: bold; font-size: 14px;'>
         🔬 MCP Research Assistant
     </div>
-    <div style='color: #aaa;
-        font-size: 12px;
-        margin-top: 5px;'>
-        Built by
-        <b style='color: white;'>
-            Sushant Kakkeri
-        </b>
-        &nbsp;|&nbsp;
-        Senior Enterprise Software Engineer
+    <div style='color: #aaa; font-size: 12px; margin-top: 5px;'>
+        Built by <b style='color: white;'>Sushant Kakkeri</b>
+        &nbsp;|&nbsp; Senior Enterprise Software Engineer
     </div>
-    <div style='color: gray;
-        font-size: 11px;
-        margin-top: 4px;'>
-        Powered by OpenAI GPT-4o +
-        LangChain + FAISS + Streamlit
-        &nbsp;|&nbsp;
-        © 2026 All Rights Reserved
+    <div style='color: gray; font-size: 11px; margin-top: 4px;'>
+        Powered by OpenAI GPT-4o + LangChain + FAISS + Streamlit
+        &nbsp;|&nbsp; © 2026 All Rights Reserved
     </div>
 </div>
 """, unsafe_allow_html=True)
